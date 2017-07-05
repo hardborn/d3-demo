@@ -1,58 +1,32 @@
 <template>
-  <div id="wrapper">
-    <img id="logo" src="~@/assets/logo.png" alt="electron-vue">
+  <div id='wrapper'>
+    <img id='logo' src='~@/assets/logo.png' alt='electron-vue'>
     <main>
   
-      <div class="left-side">
-        <span class="title">
+      <div class='left-side'>
+        <span class='title'>
           Welcome to your new project!
         </span>
         <system-information></system-information>
   
-        <svg width="350" height="160">
-          <!-- 60px x 10px margin -->
-          <g class="layer" transform="translate(60,10)">
-            <!-- cx = 270px * ($X / 3)
-                  ^      ^   ^
-      width of graph  x-value max(x)
-  
-            cy = 120px - (($Y / 80) * 120px)
-                   ^       ^     ^       ^
-        top of graph   y-value  max(y)  scale -->
-            <circle r="5" cx="0" cy="105" />
-            <circle r="5" cx="90" cy="90" />
-            <circle r="5" cx="180" cy="60" />
-            <circle r="5" cx="270" cy="0" />
-  
-            <g class="y axis">
-              <line x1="0" y1="0" x2="0" y2="120" />
-              <text x="-40" y="105" dy="5">$10</text>
-              <text x="-40" y="0" dy="5">$80</text>
-            </g>
-            <g class="x axis" transform="translate(0, 120)">
-              <line x1="0" y1="0" x2="270" y2="0" />
-              <text x="-30" y="20">January 2014</text>
-              <text x="240" y="20">April</text>
-            </g>
-          </g>
-        </svg>
+        <svg width='960' height='500'></svg>
   
       </div>
   
-      <div class="right-side">
-        <div class="doc">
-          <div class="title">Getting Started</div>
+      <div class='right-side'>
+        <div class='doc'>
+          <div class='title'>Getting Started</div>
           <p>
             electron-vue comes packed with detailed documentation that covers everything from internal configurations, using the project structure, building your application, and so much more.
           </p>
-          <button @click="open('https://simulatedgreg.gitbooks.io/electron-vue/content/')">Read the Docs</button>
+          <button @click='open('https://simulatedgreg.gitbooks.io/electron-vue/content/')'>Read the Docs</button>
           <br>
           <br>
         </div>
-        <div class="doc">
-          <div class="title alt">Other Documentation</div>
-          <button class="alt" @click="open('https://electron.atom.io/docs/')">Electron</button>
-          <button class="alt" @click="open('https://vuejs.org/v2/guide/')">Vue.js</button>
+        <div class='doc'>
+          <div class='title alt'>Other Documentation</div>
+          <button class='alt' @click='open('https://electron.atom.io/docs/')'>Electron</button>
+          <button class='alt' @click='open('https://vuejs.org/v2/guide/')'>Vue.js</button>
         </div>
       </div>
     </main>
@@ -75,16 +49,63 @@ export default {
   mounted () {
     // var document = new JSDOM()
     // console.log(document)
-    d3.selectAll('.hover-me')
-      .on('mouseover', function () {
-        this.style.backgroundColor = 'yellow'
-      })
-      .on('mouseleave', function () {
-        this.style.backgroundColor = ''
-      })
-      .on('click', function () {
-        this.style.backgroundColor = 'red'
-      })
+    var svg = d3.select('svg')
+    var margin = { top: 20, right: 20, bottom: 30, left: 50 }
+    var width = +svg.attr('width') - margin.left - margin.right
+    var height = +svg.attr('height') - margin.top - margin.bottom
+    var g = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+
+    var parseTime = d3.timeParse('%d-%b-%y')
+
+    var x = d3.scaleTime()
+      .rangeRound([0, width])
+
+    var y = d3.scaleLinear()
+      .rangeRound([height, 0])
+
+    var line = d3.line()
+      .x(function (d) { return x(d.date) })
+      .y(function (d) { return y(d.close) })
+
+    d3.tsv('./data.tsv', function (d) {
+      console.log(d.date)
+      console.log(d.close)
+      d.date = parseTime(d.date)
+      d.close = +d.close
+      // console.log(d)
+      return d
+    }, function (error, data) {
+      if (error) throw error
+
+      console.log(data)
+      x.domain(d3.extent(data, function (d) { return d.date }))
+      y.domain(d3.extent(data, function (d) { return d.close }))
+
+      g.append('g')
+        .attr('transform', 'translate(0,' + height + ')')
+        .call(d3.axisBottom(x))
+        .select('.domain')
+        .remove()
+
+      g.append('g')
+        .call(d3.axisLeft(y))
+        .append('text')
+        .attr('fill', '#000')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', 6)
+        .attr('dy', '0.71em')
+        .attr('text-anchor', 'end')
+        .text('Price ($)')
+
+      g.append('path')
+        .datum(data)
+        .attr('fill', 'none')
+        .attr('stroke', 'steelblue')
+        .attr('stroke-linejoin', 'round')
+        .attr('stroke-linecap', 'round')
+        .attr('stroke-width', 1.5)
+        .attr('d', line)
+    })
   }
 }
 
