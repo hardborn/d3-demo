@@ -19,14 +19,14 @@
           <p>
             electron-vue comes packed with detailed documentation that covers everything from internal configurations, using the project structure, building your application, and so much more.
           </p>
-          <button @click='open('https://simulatedgreg.gitbooks.io/electron-vue/content/')'>Read the Docs</button>
+          <button @click='open(" https://simulatedgreg.gitbooks.io/electron-vue/content/ ")'>Read the Docs</button>
           <br>
           <br>
         </div>
         <div class='doc'>
           <div class='title alt'>Other Documentation</div>
-          <button class='alt' @click='open('https://electron.atom.io/docs/')'>Electron</button>
-          <button class='alt' @click='open('https://vuejs.org/v2/guide/')'>Vue.js</button>
+          <button class='alt' @click='open(" https://electron.atom.io/docs/ ")'>Electron</button>
+          <button class='alt' @click='open(" https://vuejs.org/v2/guide/ ")'>Vue.js</button>
         </div>
       </div>
     </main>
@@ -49,63 +49,55 @@ export default {
   mounted () {
     // var document = new JSDOM()
     // console.log(document)
+    var data = d3.range(1000).map(d3.randomBates(10))
+
+    var formatCount = d3.format(',.0f')
+
     var svg = d3.select('svg')
-    var margin = { top: 20, right: 20, bottom: 30, left: 50 }
+    var margin = { top: 10, right: 30, bottom: 30, left: 30 }
     var width = +svg.attr('width') - margin.left - margin.right
     var height = +svg.attr('height') - margin.top - margin.bottom
     var g = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
 
-    var parseTime = d3.timeParse('%d-%b-%y')
-
-    var x = d3.scaleTime()
+    var x = d3.scaleLinear()
       .rangeRound([0, width])
 
+    var bins = d3.histogram()
+      .domain(x.domain())
+      .thresholds(x.ticks(20))(data)
+
     var y = d3.scaleLinear()
-      .rangeRound([height, 0])
+      .domain([0, d3.max(bins, function (d) { return d.length })])
+      .range([height, 0])
 
-    var line = d3.line()
-      .x(function (d) { return x(d.date) })
-      .y(function (d) { return y(d.close) })
+    var bar = g.selectAll('.bar')
+      .data(bins)
+      .enter().append('g')
+      .attr('class', 'bar')
+      .attr('transform', function (d) { return 'translate(' + x(d.x0) + ',' + y(d.length) + ')' })
 
-    d3.tsv('./data.tsv', function (d) {
-      console.log(d.date)
-      console.log(d.close)
-      d.date = parseTime(d.date)
-      d.close = +d.close
-      // console.log(d)
-      return d
-    }, function (error, data) {
-      if (error) throw error
+    bar.append('rect')
+      .on('mouseover', function () {
+        this.style.fill = 'red'
+      })
+      .on('mouseleave', function () {
+        this.style.fill = ''
+      })
+      .attr('x', 1)
+      .attr('width', x(bins[0].x1) - x(bins[0].x0) - 1)
+      .attr('height', function (d) { return height - y(d.length) })
 
-      console.log(data)
-      x.domain(d3.extent(data, function (d) { return d.date }))
-      y.domain(d3.extent(data, function (d) { return d.close }))
+    bar.append('text')
+      .attr('dy', '.75em')
+      .attr('y', 6)
+      .attr('x', (x(bins[0].x1) - x(bins[0].x0)) / 2)
+      .attr('text-anchor', 'middle')
+      .text(function (d) { return formatCount(d.length) })
 
-      g.append('g')
-        .attr('transform', 'translate(0,' + height + ')')
-        .call(d3.axisBottom(x))
-        .select('.domain')
-        .remove()
-
-      g.append('g')
-        .call(d3.axisLeft(y))
-        .append('text')
-        .attr('fill', '#000')
-        .attr('transform', 'rotate(-90)')
-        .attr('y', 6)
-        .attr('dy', '0.71em')
-        .attr('text-anchor', 'end')
-        .text('Price ($)')
-
-      g.append('path')
-        .datum(data)
-        .attr('fill', 'none')
-        .attr('stroke', 'steelblue')
-        .attr('stroke-linejoin', 'round')
-        .attr('stroke-linecap', 'round')
-        .attr('stroke-width', 1.5)
-        .attr('d', line)
-    })
+    g.append('g')
+      .attr('class', 'axis axis--x')
+      .attr('transform', 'translate(0,' + height + ')')
+      .call(d3.axisBottom(x))
   }
 }
 
@@ -207,5 +199,14 @@ main>div {
   stroke-width: 3pt;
   /* similar to border-width */
   stroke-dasharray: 3, 5, 10;
+}
+
+.bar rect {
+  fill: steelblue;
+}
+
+.bar text {
+  fill: orangered;
+  font: 10px sans-serif;
 }
 </style>
