@@ -65,6 +65,7 @@ export default {
         for (var laneName in chart.lanes) {
           var lane = chart.lanes[laneName]
 
+          console.log('lane.length: ' + lane.length)
           for (var i = 0; i < lane.length; i++) {
             var subLane = lane[i]
 
@@ -87,7 +88,7 @@ export default {
             laneId++
           }
         }
-
+        console.log(lanes)
         return { lanes: lanes, items: items }
       }
 
@@ -216,30 +217,34 @@ export default {
       .attr('class', 'laneText')
     // draw the x axis
     var xDateAxis = d3.axisBottom(x)
+      // .scale(x)
       .ticks(d3.timeMonday, (x.domain()[1] - x.domain()[0]) > 15552e6 ? 2 : 1)
       .tickFormat(d3.timeFormat('%d'))
       .tickSize(6, 0, 0)
 
     var x1DateAxis = d3.axisBottom(x1)
+      // .scale(x1)
       .ticks(d3.timeDay, 1)
       .tickFormat(d3.timeFormat('%a %d'))
       .tickSize(6, 0, 0)
 
     var xMonthAxis = d3.axisTop(x)
-      .ticks(d3.timeMonth, 1)
+      // .scale(x)
+      .ticks(d3.timeMonday, 1)
       .tickFormat(d3.timeFormat('%b %Y'))
       .tickSize(15, 0, 0)
 
     var x1MonthAxis = d3.axisTop(x1)
+      // .scale(x1)
       .ticks(d3.timeMonday, 1)
       .tickFormat(d3.timeFormat('%b - Week %W'))
       .tickSize(15, 0, 0)
-    console.log('1')
+
     main.append('g')
       .attr('transform', 'translate(0,' + mainHeight + ')')
       .attr('class', 'main axis date')
       .call(x1DateAxis)
-    console.log('1')
+
     main.append('g')
       .attr('transform', 'translate(0,0.5)')
       .attr('class', 'main axis month')
@@ -247,12 +252,12 @@ export default {
       .selectAll('text')
       .attr('dx', 5)
       .attr('dy', 12)
-    console.log('1')
+
     mini.append('g')
       .attr('transform', 'translate(0,' + miniHeight + ')')
       .attr('class', 'axis date')
       .call(xDateAxis)
-    console.log('1')
+
     mini.append('g')
       .attr('transform', 'translate(0,0.5)')
       .attr('class', 'axis month')
@@ -260,8 +265,8 @@ export default {
       .selectAll('text')
       .attr('dx', 5)
       .attr('dy', 12)
-    console.log('1')
     // draw a line representing today's date
+
     main.append('line')
       .attr('y1', 0)
       .attr('y2', mainHeight)
@@ -274,7 +279,6 @@ export default {
       .attr('x2', x(now) + 0.5)
       .attr('y2', miniHeight)
       .attr('class', 'todayLine')
-    console.log('1')
 
     // draw the items
     var itemRects = main.append('g')
@@ -292,8 +296,9 @@ export default {
       .attr('width', width)
       .attr('height', miniHeight)
       .attr('visibility', 'hidden')
-      .on('mouseup', moveBrush)
+      // .on('mouseup', moveBrush)
 
+    console.log('d3.timeMonday(now) : ' + d3.timeMonday(now))
     // draw the selection area
     var brush = d3.brushX()
       // .extent([d3.timeMonday(now), d3.timeSaturday.ceil(now)])
@@ -311,83 +316,84 @@ export default {
     display()
 
     function display () {
-      var rects, labels
-      var minExtent = d3.timeDay(brush.extent()[0])
-      var maxExtent = d3.timeDay(brush.extent()[1])
-      console.log(minExtent)
-      var visItems = items.filter(function (d) { return d.start < maxExtent && d.end > minExtent })
+      console.log('+++display+++')
+      var s = d3.event.selection
+      if (s != null) {
+        var rects, labels
+        var minExtent = d3.timeDay(x.invert(s[0]))
+        var maxExtent = d3.timeDay(x.invert(s[1]))
+        console.log('s: ' + s)
+        var visItems = items.filter(function (d) { return d.start < maxExtent && d.end > minExtent })
 
-      mini.select('.brush').call(brush.extent([minExtent, maxExtent]))
+        // mini.select('.brush').call(brush.extent([minExtent, maxExtent]))
 
-      x1.domain([minExtent, maxExtent])
+        x1.domain([minExtent, maxExtent])
 
-      if ((maxExtent - minExtent) > 1468800000) {
-        x1DateAxis.ticks(d3.timeMonday, 1).tickFormat(d3.timeFormat('%a %d'))
-        x1MonthAxis.ticks(d3.timeMonday, 1).tickFormat(d3.timeFormat('%b - Week %W'))
-      } else if ((maxExtent - minExtent) > 172800000) {
-        x1DateAxis.ticks(d3.timeDay, 1).tickFormat(d3.timeFormat('%a %d'))
-        x1MonthAxis.ticks(d3.timeMonday, 1).tickFormat(d3.timeFormat('%b - Week %W'))
-      } else {
-        x1DateAxis.ticks(d3.timeHour, 4).tickFormat(d3.timeFormat('%I %p'))
-        x1MonthAxis.ticks(d3.timeDay, 1).tickFormat(d3.timeFormat('%b %e'))
+        if ((maxExtent - minExtent) > 1468800000) {
+          x1DateAxis.ticks(d3.timeMonday, 1).tickFormat(d3.timeFormat('%a %d'))
+          x1MonthAxis.ticks(d3.timeMonday, 1).tickFormat(d3.timeFormat('%b - Week %W'))
+        } else if ((maxExtent - minExtent) > 172800000) {
+          x1DateAxis.ticks(d3.timeDay, 1).tickFormat(d3.timeFormat('%a %d'))
+          x1MonthAxis.ticks(d3.timeMonday, 1).tickFormat(d3.timeFormat('%b - Week %W'))
+        } else {
+          x1DateAxis.ticks(d3.timeHour, 4).tickFormat(d3.timeFormat('%I %p'))
+          x1MonthAxis.ticks(d3.timeDay, 1).tickFormat(d3.timeFormat('%b %e'))
+        }
+        // x1Offset.range([0, x1(d3.time.day.ceil(now) - x1(d3.time.day.floor(now)))]);
+        // shift the today line
+        main.select('.main.todayLine')
+          .attr('x1', x1(now) + 0.5)
+          .attr('x2', x1(now) + 0.5)
+
+        // update the axis
+        main.select('.main.axis.date').call(x1DateAxis)
+        main.select('.main.axis.month').call(x1MonthAxis)
+          .selectAll('text')
+          .attr('dx', 5)
+          .attr('dy', 12)
+
+        // upate the item rects
+        rects = itemRects.selectAll('rect')
+          .data(visItems, function (d) { return d.id })
+          .attr('x', function (d) { return x1(d.start) })
+          .attr('width', function (d) { return x1(d.end) - x1(d.start) })
+
+        rects.enter().append('rect')
+          .attr('x', function (d) { return x1(d.start) })
+          .attr('y', function (d) { return y1(d.lane) + 0.1 * y1(1) + 0.5 })
+          .attr('width', function (d) { return x1(d.end) - x1(d.start) })
+          .attr('height', function (d) { return 0.8 * y1(1) })
+          .attr('class', function (d) { return 'mainItem ' + d.class })
+
+        rects.exit().remove()
+
+        // update the item labels
+        labels = itemRects.selectAll('text')
+          .data(visItems, function (d) { return d.id })
+          .attr('x', function (d) { return x1(Math.max(d.start, minExtent)) + 2 })
+
+        labels.enter().append('text')
+          .text(function (d) { return 'Item\n\n\n\n Id: ' + d.id })
+          .attr('x', function (d) { return x1(Math.max(d.start, minExtent)) + 2 })
+          .attr('y', function (d) { return y1(d.lane) + 0.4 * y1(1) + 0.5 })
+          .attr('text-anchor', 'start')
+          .attr('class', 'itemLabel')
+
+        labels.exit().remove()
       }
-      // x1Offset.range([0, x1(d3.time.day.ceil(now) - x1(d3.time.day.floor(now)))]);
-      // shift the today line
-      main.select('.main.todayLine')
-        .attr('x1', x1(now) + 0.5)
-        .attr('x2', x1(now) + 0.5)
-
-      // update the axis
-      main.select('.main.axis.date').call(x1DateAxis)
-      main.select('.main.axis.month').call(x1MonthAxis)
-        .selectAll('text')
-        .attr('dx', 5)
-        .attr('dy', 12)
-
-      // upate the item rects
-      rects = itemRects.selectAll('rect')
-        .data(visItems, function (d) { return d.id })
-        .attr('x', function (d) { return x1(d.start) })
-        .attr('width', function (d) { return x1(d.end) - x1(d.start) })
-
-      rects.enter().append('rect')
-        .attr('x', function (d) { return x1(d.start) })
-        .attr('y', function (d) { return y1(d.lane) + 0.1 * y1(1) + 0.5 })
-        .attr('width', function (d) { return x1(d.end) - x1(d.start) })
-        .attr('height', function (d) { return 0.8 * y1(1) })
-        .attr('class', function (d) { return 'mainItem ' + d.class })
-
-      rects.exit().remove()
-
-      // update the item labels
-      labels = itemRects.selectAll('text')
-        .data(visItems, function (d) { return d.id })
-        .attr('x', function (d) { return x1(Math.max(d.start, minExtent)) + 2 })
-
-      labels.enter().append('text')
-        .text(function (d) { return 'Item\n\n\n\n Id: ' + d.id })
-        .attr('x', function (d) { return x1(Math.max(d.start, minExtent)) + 2 })
-        .attr('y', function (d) { return y1(d.lane) + 0.4 * y1(1) + 0.5 })
-        .attr('text-anchor', 'start')
-        .attr('class', 'itemLabel')
-
-      labels.exit().remove()
     }
 
-    function moveBrush () {
-      console.log(this)
-      var origin = d3.mouse(this)
-      console.log(origin)
-      var point = x.invert(origin[0])
-      console.log(brush.extent())
-      var halfExtent = (brush.extent()[1].getTime() - brush.extent()[0].getTime()) / 2
-      console.log(brush)
-      var start = new Date(point.getTime() - halfExtent)
-      var end = new Date(point.getTime() + halfExtent)
+    // function moveBrush () {
+    //   console.log('+++moveBrush+++')
+    //   var origin = d3.mouse(this)
+    //   var point = x.invert(origin[0])
+    //   var halfExtent = (brush.extent()[1].getTime() - brush.extent()[0].getTime()) / 2
+    //   var start = new Date(point.getTime() - halfExtent)
+    //   var end = new Date(point.getTime() + halfExtent)
 
-      brush.extent([start, end])
-      display()
-    }
+    //   brush.extent([start, end])
+    //   display()
+    // }
 
     // generates a single path for each item class in the mini display
     // ugly - but draws mini 2x faster than append lines or line generator
