@@ -7,7 +7,7 @@
 
 <script>
 import * as d3 from 'd3'
-
+import fs from 'fs'
 export default {
 
   methods: {
@@ -92,59 +92,104 @@ export default {
         return { lanes: lanes, items: items }
       }
 
-      var randomNumber = function (min, max) {
-        return Math.floor(Math.random(0, 1) * (max - min)) + min
-      }
+      // var randomNumber = function (min, max) {
+      //   return Math.floor(Math.random(0, 1) * (max - min)) + min
+      // }
 
-      var generateRandomWorkItems = function () {
-        var data = []
-        let laneCount = randomNumber(5, 7)
-        let totalWorkItems = randomNumber(20, 30)
-        let startMonth = randomNumber(0, 1)
-        let startDay = randomNumber(1, 28)
-        // let totalMonths = randomNumber(4, 10)
+      // var generateRandomWorkItems = function () {
+      //   var data = []
+      //   let laneCount = randomNumber(5, 7)
+      //   let totalWorkItems = randomNumber(20, 30)
+      //   let startMonth = randomNumber(0, 1)
+      //   let startDay = randomNumber(1, 28)
+      //   // let totalMonths = randomNumber(4, 10)
 
-        for (var i = 0; i < laneCount; i++) {
-          let dt = new Date(2012, startMonth, startDay)
-          for (var j = 0; j < totalWorkItems; j++) {
-            var dtS = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + randomNumber(1, 5), randomNumber(8, 16), 0, 0)
+      //   for (var i = 0; i < laneCount; i++) {
+      //     let dt = new Date(2012, startMonth, startDay)
+      //     for (var j = 0; j < totalWorkItems; j++) {
+      //       var dtS = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + randomNumber(1, 5), randomNumber(8, 16), 0, 0)
 
-            var dateOffset = randomNumber(0, 7)
-            dt = new Date(dtS.getFullYear(), dtS.getMonth(), dtS.getDate() + dateOffset, randomNumber(dateOffset === 0 ? dtS.getHours() + 2 : 8, 18), 0, 0)
+      //       var dateOffset = randomNumber(0, 7)
+      //       dt = new Date(dtS.getFullYear(), dtS.getMonth(), dtS.getDate() + dateOffset, randomNumber(dateOffset === 0 ? dtS.getHours() + 2 : 8, 18), 0, 0)
 
-            var workItem = {
-              name: 'work item ' + j,
-              lane: 'lane ' + i,
-              start: dtS,
-              end: dt,
-              desc: 'This is a description.'
-            }
+      //       var workItem = {
+      //         name: 'work item ' + j,
+      //         lane: 'lane ' + i,
+      //         start: dtS,
+      //         end: dt,
+      //         desc: 'This is a description.'
+      //       }
 
-            data.push(workItem)
+      //       data.push(workItem)
+      //     }
+      //   }
+      //   return data
+      // }
+
+      var getDateByExcel = function () {
+        console.log('111111')
+        var testData = fs.readFileSync(__static + '/test.csv').toString()
+        var data = d3.csvParse(testData, function (d) {
+          // console.log(d)
+          return {
+            // ID: d.ID,
+            name: d.mediaName,
+            lane: d.mediaName,
+            // ower: d.ower,
+            start: new Date(d.startTime),
+            end: new Date(d.endTime)
+            // updateTime: d.updateTime
+            // year: new Date(+d.Year, 0, 1), // convert "Year" column to Date
+            // make: d.Make,
+            // model: d.Model,
+            // length: +d.Length // convert "Length" column to number
           }
-        }
+        })
+        console.log('data :' + data[0].toString())
         return data
       }
 
-      return parseData(generateRandomWorkItems())
+      return parseData(getDateByExcel())
+      // return getDateByExcel()
     }
   },
 
   mounted () {
     var data = this.RandomData()
-    console.log(data)
+    // console.log(data)
+    // var testData = ''
+    // var filedata = fs.readFileSync(__static + '/test.csv')
+
+    // testData = filedata.toString()
+    // var data = d3.csvParse(testData, function (d) {
+    //   console.log('d:' + d)
+    //   return {
+    //     ID: d.ID,
+    //     mediaName: d.mediaName,
+    //     screenName: d.screenName,
+    //     ower: d.ower,
+    //     startTime: d.startTime,
+    //     endTime: d.endTime,
+    //     updateTime: d.updateTime
+    //     // year: new Date(+d.Year, 0, 1), // convert "Year" column to Date
+    //     // make: d.Make,
+    //     // model: d.Model,
+    //     // length: +d.Length // convert "Length" column to number
+    //   }
+    // })
+    // console.log('data :' + data)
     var lanes = data.lanes
     var items = data.items
     var now = new Date()
 
-    var margin = { top: 20, right: 15, bottom: 15, left: 60 }
-    var width = 960 - margin.left - margin.right
-    var height = 500 - margin.top - margin.bottom
+    var margin = { top: 20, right: 15, bottom: 15, left: 160 }
+    var width = 1800 - margin.left - margin.right
+    var height = 900 - margin.top - margin.bottom
     var miniHeight = lanes.length * 12 + 50
     var mainHeight = height - miniHeight - 50
 
     var x = d3.scaleTime()
-      .domain([d3.timeSunday(d3.min(items, function (d) { return d.start })), d3.max(items, function (d) { return d.end })])
+      .domain([d3.min(items, function (d) { return d.start }), d3.max(items, function (d) { return d.end })])
       .range([0, width])
     var x1 = d3.scaleTime().range([0, width])
 
@@ -218,26 +263,26 @@ export default {
     // draw the x axis
     var xDateAxis = d3.axisBottom(x)
       // .scale(x)
-      .ticks(d3.timeMonday, (x.domain()[1] - x.domain()[0]) > 15552e6 ? 2 : 1)
-      .tickFormat(d3.timeFormat('%d'))
+      .ticks(d3.timeHour)
+      .tickFormat(d3.timeFormat('%H:%M:%S'))
       .tickSize(6, 0, 0)
 
     var x1DateAxis = d3.axisBottom(x1)
       // .scale(x1)
       .ticks(d3.timeDay, 1)
-      .tickFormat(d3.timeFormat('%a %d'))
+      .tickFormat(d3.timeFormat('%Y-%m-%d'))
       .tickSize(6, 0, 0)
 
     var xMonthAxis = d3.axisTop(x)
       // .scale(x)
-      .ticks(d3.timeMonday, 1)
-      .tickFormat(d3.timeFormat('%b %Y'))
+      .ticks(d3.timeHour, 1)
+      .tickFormat(d3.timeFormat('%H:%M:%S'))
       .tickSize(15, 0, 0)
 
     var x1MonthAxis = d3.axisTop(x1)
       // .scale(x1)
-      .ticks(d3.timeMonday, 1)
-      .tickFormat(d3.timeFormat('%b - Week %W'))
+      .ticks(d3.timeDay, 1)
+      .tickFormat(d3.timeFormat('%Y-%m-%d'))
       .tickSize(15, 0, 0)
 
     main.append('g')
@@ -298,7 +343,7 @@ export default {
       .attr('visibility', 'hidden')
       // .on('mouseup', moveBrush)
 
-    console.log('d3.timeMonday(now) : ' + d3.timeMonday(now))
+    // console.log('d3.timeMonday(now) : ' + d3.timeMonday(now))
     // draw the selection area
     var brush = d3.brushX()
       // .extent([d3.timeMonday(now), d3.timeSaturday.ceil(now)])
@@ -320,8 +365,8 @@ export default {
       var s = d3.event.selection
       if (s != null) {
         var rects, labels
-        var minExtent = d3.timeDay(x.invert(s[0]))
-        var maxExtent = d3.timeDay(x.invert(s[1]))
+        var minExtent = d3.timeMinute(x.invert(s[0]))
+        var maxExtent = d3.timeMinute(x.invert(s[1]))
         console.log('s: ' + s)
         var visItems = items.filter(function (d) { return d.start < maxExtent && d.end > minExtent })
 
